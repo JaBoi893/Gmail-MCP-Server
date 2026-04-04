@@ -58,6 +58,27 @@ def get_labels():
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
         return f"An error occured: {error}"
+    
+
+@mcp.tool()
+def get_unread():
+    """
+    Retrieves all of the user's unread emails in their inbox
+    """
+
+    creds = get_credentials()
+
+    try:
+        service = build("gmail", "v1", credentials=creds)
+        results = service.users().messages().list(maxResults=30, labelIds=["Inbox"]).execute()
+        messages = results.get("messages")
+
+        if not messages:
+            return "No messages found."
+        return json.dumps(messages)
+    
+    except HttpError as error:
+        return f"An error occured: {error}"
 
 if __name__ == "__main__":
     mcp.run()
