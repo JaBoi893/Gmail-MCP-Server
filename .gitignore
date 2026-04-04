@@ -1,0 +1,12 @@
+# Google Credentials
+credentials.json
+token.json
+
+# Unwanted Files
+stock_price_server.py
+gmail.py
+gmail_server.cpython-313.pyc
+stock_price_server.cpython-313.pyc
+
+# VSCode files
+.VSCode
