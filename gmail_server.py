@@ -93,13 +93,29 @@ def get_unread():
 @mcp.tool()
 def application_status():
     """
-    Retrieves inbox data, then returns entries that might relate to internship applications
+    Retrieves inbox data, then returns unread entries that might relate to internship applications
     """
 
-    creds = get_credentials()
     messageData = get_unread()
+    text0 = r"application"
+    text1 = r"intern"
+    text2 = r"status"
+    text3 = r"update"
 
+    appHeaders = []
+
+    for message in messageData:
+        for header in message['headers']:
+            name = header['name']
+            value = header['value']
+            if name == 'Subject' and (re.search(text0, value, re.IGNORECASE)
+                                       or re.search(text1, value, re.IGNORECASE)
+                                         or re.search(text2, value, re.IGNORECASE)
+                                           or re.search(text3, value, re.IGNORECASE)):
+                appHeaders.append(header)
     
+    return appHeaders
+
     
 
 if __name__ == "__main__":
