@@ -1,6 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 
 import json
+import re
 import os.path
 
 from google.auth.transport.requests import Request
@@ -70,7 +71,7 @@ def get_unread():
 
     try:
         service = build("gmail", "v1", credentials=creds)
-        results = service.users().messages().list(userId="me", maxResults=30, labelIds=["INBOX"]).execute()
+        results = service.users().messages().list(userId="me", maxResults=30, labelIds=["INBOX"], q="is:unread").execute()
         messages = results.get("messages", [])
 
         if not messages:
@@ -85,9 +86,20 @@ def get_unread():
             messageData.append(payload)
 
         return messageData
-    
     except HttpError as error:
         return f"An error occured: {error}"
+    
+
+@mcp.tool()
+def application_status():
+    """
+    Retrieves inbox data, then returns entries that might relate to internship applications
+    """
+
+    creds = get_credentials()
+    messageData = get_unread()
+
+    
     
 
 if __name__ == "__main__":
