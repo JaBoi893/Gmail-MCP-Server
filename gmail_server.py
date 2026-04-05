@@ -105,14 +105,29 @@ def application_status():
     appHeaders = []
 
     for message in messageData:
+        tempHeader = {
+            "From": "",
+            "Subject": ""
+        }
+        sender = None
+        found = False
         for header in message['headers']:
             name = header['name']
             value = header['value']
-            if name == 'Subject' and (re.search(text0, value, re.IGNORECASE)
+            if name == 'From':
+                sender = value
+            elif name == 'Subject' and (re.search(text0, value, re.IGNORECASE)
                                        or re.search(text1, value, re.IGNORECASE)
                                          or re.search(text2, value, re.IGNORECASE)
                                            or re.search(text3, value, re.IGNORECASE)):
-                appHeaders.append(header)
+                tempHeader['Subject'] = value
+                tempHeader['From'] = sender
+                found = True
+
+        if found:
+            appHeaders.append(tempHeader)
+
+
     
     return appHeaders
 
