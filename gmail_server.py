@@ -3,6 +3,8 @@ from mcp.server.fastmcp import FastMCP
 import json
 import re
 import os.path
+import argparse
+import base64
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -81,9 +83,12 @@ def get_unread():
 
         for message in messages:
             messageId = message['id']
-            messageResult = service.users().messages().get(userId="me", id=messageId).execute()
-            payload = messageResult.get("payload")
-            messageData.append(payload)
+            messageResult = service.users().messages().get(userId="me", id=messageId, format="full").execute()
+            data = {
+                "snippet": messageResult.get("snippet"),
+                "payload": messageResult.get("payload"),
+            }
+            messageData.append(data)
 
         return messageData
     except HttpError as error:
@@ -97,41 +102,50 @@ def application_status():
     """
 
     messageData = get_unread()
-    text0 = r"application"
-    text1 = r"intern"
-    text2 = r"status"
-    text3 = r"update"
 
     appHeaders = []
 
+    interviewPattern = r"[Ss]chedule(.*)[Ii]nterview(.*)((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)|((1[0-2]|0?[1-9])( / |/)(1[0-9]|2[0-9]|3[0-1])( / |/)(20[0-9][0-9])))(.*)\b(1[0-2]|0?[1-9]):([0-5][0-9])\s?([AaPp][Mm])\b"
+    acceptPattern = r"(?=.*([Ii]ntern|[Oo]ffer|[Pp]osition)(?=.*([Aa]ccepted|[Cc]ongratulations|[Ee]xcited|[Pp]leased)))"
+    denyPattern = r"((?=.*([Ii]ntern|[Oo]ffer|[Pp]osition))(?=.*([Rr]egret|[Uu]nfortunately|[Dd]ecline|[Dd]enied|)))"
+
     for message in messageData:
+        headers = message['payload']['headers']
         tempHeader = {
             "From": "",
-            "Subject": ""
+            "Subject": "",
+            "Status": ""
         }
-        sender = None
-        found = False
-        for header in message['headers']:
+        for header in headers:
             name = header['name']
             value = header['value']
             if name == 'From':
-                sender = value
-            elif name == 'Subject' and (re.search(text0, value, re.IGNORECASE)
-                                       or re.search(text1, value, re.IGNORECASE)
-                                         or re.search(text2, value, re.IGNORECASE)
-                                           or re.search(text3, value, re.IGNORECASE)):
+                tempHeader['From'] = value
+            elif name == 'Subject':
                 tempHeader['Subject'] = value
-                tempHeader['From'] = sender
-                found = True
 
-        if found:
-            appHeaders.append(tempHeader)
+        snippet = message['snippet']
+        interviewSearch = re.search(interviewPattern, snippet)
+        if interviewSearch:
+            tempHeader['Status'] = interviewSearch.group()
+        elif re.search(acceptPattern, snippet):
+            tempHeader['Status'] = "Accepted"
+        elif re.search(denyPattern, snippet):
+            tempHeader['Status'] = "Denied"
+        else:
+            tempHeader['Status'] = "Unknown"
 
+        appHeaders.append(tempHeader)
 
-    
     return appHeaders
 
     
 
 if __name__ == "__main__":
-    mcp.run()
+    parser = argparse.ArgumentParser(description="Run the Gmail MCP server or execute a tool directly.")
+    parser.add_argument("--cli", action="store_true", help="Execute the get_unread tool directly and print the results.")
+    args = parser.parse_args()
+    if args.cli:
+        application_status()
+    else:
+        mcp.run()
