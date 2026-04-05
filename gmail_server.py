@@ -70,15 +70,25 @@ def get_unread():
 
     try:
         service = build("gmail", "v1", credentials=creds)
-        results = service.users().messages().list(maxResults=30, labelIds=["Inbox"]).execute()
-        messages = results.get("messages")
+        results = service.users().messages().list(userId="me", maxResults=30, labelIds=["INBOX"]).execute()
+        messages = results.get("messages", [])
 
         if not messages:
             return "No messages found."
-        return json.dumps(messages)
+
+        messageData = []
+
+        for message in messages:
+            messageId = message['id']
+            messageResult = service.users().messages().get(userId="me", id=messageId).execute()
+            payload = messageResult.get("payload")
+            messageData.append(payload)
+
+        return messageData
     
     except HttpError as error:
         return f"An error occured: {error}"
+    
 
 if __name__ == "__main__":
     mcp.run()
